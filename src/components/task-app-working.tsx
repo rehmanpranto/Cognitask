@@ -1,10 +1,10 @@
-// @ts-nocheck
 'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import type { Task } from '@/lib/definitions';
 import {
   addTaskAction,
   deleteTaskAction,
@@ -24,8 +24,8 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-export function TaskApp({ initialTasks }) {
-  const [tasks, setTasks] = useState(initialTasks);
+export function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [isLoading, setIsLoading] = useState(false);
   const [newTaskText, setNewTaskText] = useState('');
   const { toast } = useToast();
@@ -36,7 +36,7 @@ export function TaskApp({ initialTasks }) {
     setTasks(updatedTasks);
   };
 
-  const handleAddTask = async (e) => {
+  const handleAddTask = async (e: any) => {
     e.preventDefault();
     if (!newTaskText.trim()) return;
 
@@ -75,12 +75,12 @@ export function TaskApp({ initialTasks }) {
     setIsLoading(false);
   };
 
-  const handleToggleTask = async (taskId, completed) => {
+  const handleToggleTask = async (taskId: string, completed: boolean) => {
     await updateTaskAction(taskId, { completed });
     await refreshTasks();
   };
 
-  const handleDeleteTask = async (taskId) => {
+  const handleDeleteTask = async (taskId: string) => {
     await deleteTaskAction(taskId);
     await refreshTasks();
   };

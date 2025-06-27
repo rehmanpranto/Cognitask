@@ -72,6 +72,15 @@ export async function getTasks(): Promise<Task[]> {
   return getTasksFromStorage();
 }
 
+export async function addTaskAction(taskText: string): Promise<{ task?: Task; errors?: any }>;
+export async function addTaskAction(
+  taskText: string, 
+  description?: string,
+  category?: TaskCategory,
+  priority?: TaskPriority,
+  dueDate?: string,
+  tags?: string[]
+): Promise<{ task?: Task; errors?: any }>;
 export async function addTaskAction(
   taskText: string, 
   description?: string,
