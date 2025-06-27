@@ -1,8 +1,11 @@
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { redirect } from 'next/navigation';
 
 export default function LandingPage() {
+  if (typeof window !== 'undefined') {
+    window.location.href = '/tasks';
+  }
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
       <main className="flex flex-col items-center justify-center text-center p-4">
@@ -14,12 +17,9 @@ export default function LandingPage() {
         </p>
         <div className="flex gap-4">
           <Button asChild size="lg">
-            <Link href="/login">
+            <a href="/tasks">
               Get Started <ArrowRight className="ml-2" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="/signup">Sign Up</Link>
+            </a>
           </Button>
         </div>
       </main>

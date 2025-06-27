@@ -1,10 +1,9 @@
-# Cognitask# Cognitask: An Intelligent Task Manager
+# Cognitask: An Intelligent Task Manager
 
 Cognitask is a modern, full-stack task management application designed to help you structure your thoughts and achieve your goals. It combines a clean, minimalist interface with powerful AI features to provide a streamlined and intelligent user experience.
 
 ## Core Features
 
-- **User Authentication**: Secure sign-up and login functionality to manage your personal tasks.
 - **CRUD for Tasks**: Full capabilities to create, read, update, and delete your tasks.
 - **AI Task Suggestion**: Get intelligent task suggestions based on your current to-do list.
 - **AI Task Prioritization**: Let AI automatically re-order your tasks based on their perceived priority.
@@ -18,7 +17,7 @@ Cognitask is a modern, full-stack task management application designed to help y
 - **UI**: [React](https://react.dev/) & [ShadCN UI](https://ui.shadcn.com/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **AI Integration**: [Genkit](https://firebase.google.com/docs/genkit)
-- **Database & Auth**: [Supabase](https://supabase.io/)
+- **Database**: [Supabase](https://supabase.io/)
 
 ## Project Structure
 
@@ -31,29 +30,22 @@ Here is a map of the most important files and directories in the project:
 │   │   ├── (main)
 │   │   │   ├── layout.tsx         # Root layout
 │   │   │   └── page.tsx           # Landing page
-│   │   ├── login
-│   │   │   └── page.tsx           # Login page
-│   │   ├── signup
-│   │   │   └── page.tsx           # Signup page
 │   │   └── tasks
-│   │       └── [userId]
-│   │           └── page.tsx       # Main task management UI
+│   │       └── page.tsx           # Main task management UI
 │   ├── components
 │   │   ├── ui/                    # ShadCN UI components
 │   │   ├── task-app.tsx           # Core task management component
 │   │   ├── theme-provider.tsx     # Theme management
 │   │   └── theme-toggle.tsx       # UI for switching themes
 │   ├── lib
-│   │   ├── actions.ts             # Server Actions (auth, DB operations)
+│   │   ├── actions.ts             # Server Actions (DB operations)
 │   │   ├── definitions.ts         # TypeScript type definitions
-│   │   ├── supabase/              # Supabase client configuration
-│   │   └── utils.ts               # Utility functions
+│   │   └── supabase/              # Supabase client configuration
 │   ├── ai
 │   │   ├── genkit.ts              # Genkit configuration
 │   │   └── flows/                 # Genkit AI flows
 │   │       ├── suggest-task.ts
 │   │       └── prioritize-tasks.ts
-│   └── middleware.ts              # Supabase session middleware
 ├── public/                        # Static assets (images, etc.)
 ├── package.json                   # Project dependencies and scripts
 └── tailwind.config.ts             # Tailwind CSS configuration
@@ -84,20 +76,10 @@ You need to create a `tasks` table in your Supabase database. You can use the fo
 ```sql
 CREATE TABLE tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   text TEXT NOT NULL,
   completed BOOLEAN DEFAULT false NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
-
--- Enable Row Level Security (RLS)
-ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
-
--- Policy: Users can only see and manage their own tasks
-CREATE POLICY "Allow individual access"
-ON tasks
-FOR ALL
-USING (auth.uid() = user_id);
 ```
 
 ### 4. Install Dependencies & Run
@@ -117,5 +99,7 @@ npm run dev
 The application will be available at `http://localhost:9002`.
 
 ---
+
+**Note:** This demo version does not require login or authentication. All tasks are shared and visible to anyone who opens the app.
 
 Built with ❤️ and ☕
