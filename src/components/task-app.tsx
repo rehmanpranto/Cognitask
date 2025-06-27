@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useOptimistic, useTransition, useRef } from 'react';
-import { useFormStatus } from 'react-dom';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +11,7 @@ import {
   updateTaskAction,
   suggestTaskAction,
   prioritizeTasksAction,
+  getTasks,
 } from '@/lib/actions';
 import { ThemeToggle } from './theme-toggle';
 import { Loader, Wand2, ArrowUpDown, Square, CheckSquare, Trash2 } from 'lucide-react';
@@ -26,42 +26,24 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? <Loader className="animate-spin" /> : 'Add Task'}
-    </Button>
-  );
-}
-
 export function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
-  const [optimisticTasks, setOptimisticTasks] = useOptimistic<Task[], Task>(
-    initialTasks,
-    (state, newTask) => [...state, { ...newTask, id: Math.random().toString() }]
-  );
-
-  const [isPending, startTransition] = useTransition();
-  const formRef = useRef<HTMLFormElement>(null);
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [isLoading, setIsLoading] = useState(false);
+  const [newTaskText, setNewTaskText] = useState('');
   const { toast } = useToast();
 
-  const formAction = async (formData: FormData) => {
-    const text = formData.get('task') as string;
-    if (!text.trim()) return;
+  // Refresh tasks from localStorage
+  const refreshTasks = async () => {
+    const updatedTasks = await getTasks();
+    setTasks(updatedTasks);
+  };
 
-    const optimisticTask: Task = {
-      id: Math.random().toString(),
-      text,
-      completed: false,
-    };
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskText.trim()) return;
 
-    formRef.current?.reset();
-    
-    startTransition(() => {
-      setOptimisticTasks(optimisticTask);
-    });
-
-    const result = await addTaskAction(null, formData);
+    setIsLoading(true);
+    const result = await addTaskAction(newTaskText);
 
     if (result?.errors?.task) {
       toast({
@@ -69,57 +51,64 @@ export function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
         title: 'Error',
         description: result.errors.task[0],
       });
+    } else {
+      setNewTaskText('');
+      await refreshTasks();
     }
+    setIsLoading(false);
   };
 
   const handleSuggestTask = async () => {
-    startTransition(async () => {
-      try {
-        const suggestedText = await suggestTaskAction();
-        if (!suggestedText) return;
-
-        const formData = new FormData();
-        formData.append('task', suggestedText);
-
-        const optimisticTask: Task = {
-          id: Math.random().toString(),
-          text: suggestedText,
-          completed: false,
-        };
-        setOptimisticTasks(optimisticTask);
-
-        await addTaskAction(null, formData);
-
-        toast({
-          title: 'Suggested Task Added',
-          description: 'A new task has been suggested and added to your list.',
-        });
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'AI Error',
-          description: 'Could not get a suggestion at this time.',
-        });
+    setIsLoading(true);
+    try {
+      const suggestedText = await suggestTaskAction();
+      if (suggestedText) {
+        const result = await addTaskAction(suggestedText);
+        if (!result?.errors) {
+          await refreshTasks();
+          toast({
+            title: 'Suggested Task Added',
+            description: 'A new task has been suggested and added to your list.',
+          });
+        }
       }
-    });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'AI Error',
+        description: 'Could not get a suggestion at this time.',
+      });
+    }
+    setIsLoading(false);
   };
 
   const handlePrioritizeTasks = async () => {
-    startTransition(async () => {
-      const result = await prioritizeTasksAction();
-      if (result.success) {
-        toast({
-          title: 'Tasks Prioritized',
-          description: 'Your tasks have been re-ordered by AI.',
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: result.error || 'Failed to prioritize tasks.',
-        });
-      }
-    });
+    setIsLoading(true);
+    const result = await prioritizeTasksAction();
+    if (result.success) {
+      await refreshTasks();
+      toast({
+        title: 'Tasks Prioritized',
+        description: 'Your tasks have been re-ordered by priority.',
+      });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: result.error || 'Failed to prioritize tasks.',
+      });
+    }
+    setIsLoading(false);
+  };
+
+  const handleToggleTask = async (taskId: string, completed: boolean) => {
+    await updateTaskAction(taskId, completed);
+    await refreshTasks();
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    await deleteTaskAction(taskId);
+    await refreshTasks();
   };
 
   return (
@@ -135,18 +124,22 @@ export function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form ref={formRef} action={formAction} className="flex gap-2">
+          <form onSubmit={handleAddTask} className="flex gap-2">
             <Input
-              name="task"
+              value={newTaskText}
+              onChange={(e) => setNewTaskText(e.target.value)}
               placeholder="e.g., Finalize project report"
               className="bg-secondary focus:ring-ring"
+              disabled={isLoading}
             />
-            <SubmitButton />
+            <Button type="submit" disabled={isLoading || !newTaskText.trim()}>
+              {isLoading ? <Loader className="animate-spin" /> : 'Add Task'}
+            </Button>
           </form>
           <div className="flex gap-2 justify-start mt-4">
             <Button
               onClick={handleSuggestTask}
-              disabled={isPending}
+              disabled={isLoading}
               variant="outline"
               size="sm"
             >
@@ -155,7 +148,7 @@ export function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
             </Button>
             <Button
               onClick={handlePrioritizeTasks}
-              disabled={isPending || optimisticTasks.length < 2}
+              disabled={isLoading || tasks.length < 2}
               variant="outline"
               size="sm"
             >
@@ -166,19 +159,15 @@ export function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
           <Separator className="my-4" />
           <ScrollArea className="h-60">
             <div className="space-y-1 pr-4">
-              {optimisticTasks.map((task) => (
+              {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className={`group flex items-center p-1 rounded-md transition-colors duration-200 hover:bg-secondary ${
+                  className={`group flex items-center p-1 rounded-md transition-colors duration-200 hover:bg-secondary ${ 
                     task.completed ? 'opacity-60' : ''
                   }`}
                 >
                   <button
-                    onClick={() =>
-                      startTransition(() =>
-                        updateTaskAction(task.id, !task.completed)
-                      )
-                    }
+                    onClick={() => handleToggleTask(task.id, !task.completed)}
                     className="p-2"
                     aria-label={
                       task.completed
@@ -202,9 +191,7 @@ export function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
                     {task.text}
                   </p>
                   <button
-                    onClick={() =>
-                      startTransition(() => deleteTaskAction(task.id))
-                    }
+                    onClick={() => handleDeleteTask(task.id)}
                     className="p-2 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                     aria-label="Delete task"
                   >
@@ -217,7 +204,7 @@ export function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
         </CardContent>
         <CardFooter>
           <p className="text-xs text-muted-foreground">
-            {optimisticTasks.length} task(s)
+            {tasks.length} task(s) • Data stored locally in your browser
           </p>
         </CardFooter>
       </Card>
