@@ -9,12 +9,11 @@ import {
   addTaskAction,
   deleteTaskAction,
   updateTaskAction,
-  suggestTaskAction,
   prioritizeTasksAction,
   getTasks,
 } from '@/lib/actions';
 import { ThemeToggle } from './theme-toggle';
-import { Loader, Wand2, ArrowUpDown, Square, CheckSquare, Trash2 } from 'lucide-react';
+import { Loader, ArrowUpDown, Square, CheckSquare, Trash2 } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -54,30 +53,6 @@ export function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
     } else {
       setNewTaskText('');
       await refreshTasks();
-    }
-    setIsLoading(false);
-  };
-
-  const handleSuggestTask = async () => {
-    setIsLoading(true);
-    try {
-      const suggestedText = await suggestTaskAction();
-      if (suggestedText) {
-        const result = await addTaskAction(suggestedText);
-        if (!result?.errors) {
-          await refreshTasks();
-          toast({
-            title: 'Suggested Task Added',
-            description: 'A new task has been suggested and added to your list.',
-          });
-        }
-      }
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'AI Error',
-        description: 'Could not get a suggestion at this time.',
-      });
     }
     setIsLoading(false);
   };
@@ -137,15 +112,6 @@ export function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
             </Button>
           </form>
           <div className="flex gap-2 justify-start mt-4">
-            <Button
-              onClick={handleSuggestTask}
-              disabled={isLoading}
-              variant="outline"
-              size="sm"
-            >
-              <Wand2 />
-              Suggest
-            </Button>
             <Button
               onClick={handlePrioritizeTasks}
               disabled={isLoading || tasks.length < 2}
